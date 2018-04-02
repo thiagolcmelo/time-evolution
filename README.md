@@ -1,2 +1,3 @@
-# time-evolution
+# Time Evolution
+
 Applications of Time Evolution Techniques on Quantum Systems
