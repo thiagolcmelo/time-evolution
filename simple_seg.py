@@ -37,10 +37,10 @@ class InGaAsQW(object):
         self.well_length = well_length
         self.R = R
         self.x = x
-        self.N = 256
+        self.N = 1024
         self.T = 1.4
         self.dt = 1e-18
-        self.precision = 1e-4
+        self.precision = 1e-5
 
         # AU of interest
         self.au_l = cte.value('atomic unit of length')
@@ -60,7 +60,7 @@ class InGaAsQW(object):
     def _build_grid(self):
         bulk_len = 300.0
         bulk = Database(Alloy.GaAs)
-        bulk_lattice = bulk.parameters('a0')/2.0
+        bulk_lattice = 5.65/2 #bulk.parameters('a0')/2.0
         bulk_layers = np.ceil(bulk_len/bulk_lattice)
         bulk_len = bulk_layers * bulk_lattice
 
@@ -73,8 +73,11 @@ class InGaAsQW(object):
         cur_layer = 1
         while well_actual_len < self.well_length:
             x = self._layer_x(cur_layer)
-            db = Database(Alloy.InGaAs, 1.0-x)
-            a0 = db.parameters('a0')
+            a0 = 5.65*(1-x)+6.08*x
+            #db = Database(Alloy.InGaAs, 1.0-x)
+            #a0 = db.parameters('a0')
+            #if well_actual_len + a0/2.0 > self.well_length:
+            #    break
             well_actual_len += a0/2.0
             self.system_layers_x.append(x)
             self.system_layers_a.append(a0)
@@ -85,8 +88,9 @@ class InGaAsQW(object):
         well_N = cur_layer-1
         while barrier_len < bulk_len:
             x = self._layer_x(cur_layer, N=well_N)
-            db = Database(Alloy.InGaAs, 1.0-x)
-            a0 = db.parameters('a0')
+            a0 = 5.65*(1-x)+6.08*x
+            #db = Database(Alloy.InGaAs, 1.0-x)
+            #a0 = db.parameters('a0')
             barrier_len += a0/2.0
             self.system_layers_x.append(x)
             self.system_layers_a.append(a0)
@@ -188,8 +192,8 @@ class InGaAsQW(object):
         #plt.matshow(np.abs(C))
         #plt.show()
 
-        invB = inv(B)
-        D = invB * C
+        #invB = inv(B)
+        #D = invB * C
         k = fftfreq(self.N, d=dz)
         exp_v2 = np.exp(- 0.5j * v * dt)
         exp_t = np.exp(- 0.5j * (2 * np.pi * k) ** 2 * dt / np.max(m))
@@ -213,8 +217,8 @@ class InGaAsQW(object):
 
             while True:
                 start_time = time.time()
-                eigenstates[s] = D.dot(eigenstates[s])
-                #eigenstates[s] = evolution_operator(eigenstates[s])
+                #eigenstates[s] = D.dot(eigenstates[s])
+                eigenstates[s] = evolution_operator(eigenstates[s])
                 counters[s] += 1
 
                 # gram-shimdt
@@ -246,7 +250,7 @@ class InGaAsQW(object):
                     p_h_p /= A**2
 
                     eigenvalues_ev[s] = p_h_p.real * self.au2ev # eV
-                    print(eigenvalues_ev[s])
+                    #print(eigenvalues_ev[s])
 
                     precisions[s] = np.abs(1.0-eigenvalues_ev[s] \
                         / eigenvalues_ev_last)
@@ -266,14 +270,15 @@ class InGaAsQW(object):
 
 if __name__ == u'__main__':
     #import matplotlib.pyplot as plt
-    #device = InGaAsQW(well_length=25.0, R=0.85, x=0.15)
+    #device = InGaAsQW(well_length=50.0, R=0.85, x=0.15)
+    #plt.scatter(device.z_ang, device.x_z)
     #plt.scatter(device.z_ang, device.gap_c)
     #plt.scatter(device.z_ang, device.gap_v)
     #plt.show()
     #sys.exit(0)
     #for R in np.linspace(0.7, 0.9, 5):
     R = 0.85
-    for l in [15, 27, 39, 51, 63]:
+    for l in [3, 15, 27, 39, 51, 63]:
         device = InGaAsQW(well_length=l, R=R, x=0.16)
         device._crank_nicolson(nmax=1)
         electron = device.eigenvalues_ev[0]
@@ -284,7 +289,4 @@ if __name__ == u'__main__':
         gap = gap_c-gap_v
         gap = np.min(gap)
         print("L=%f, R=%f, Ee=%.10f, Ehh=%.10f, Eg=%.10f, Epl=%.10f"%(l,R, electron, heavy_hole, gap, gap+electron+heavy_hole-0.007))
-
-
-
 
