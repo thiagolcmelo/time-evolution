@@ -39,8 +39,8 @@ class InGaAsQW(object):
         self.x = x
         self.N = 256
         self.T = 1.4
-        self.dt = 1e-19
-        self.precision = 1e-5
+        self.dt = 1e-18
+        self.precision = 1e-4
 
         # AU of interest
         self.au_l = cte.value('atomic unit of length')
@@ -115,23 +115,18 @@ class InGaAsQW(object):
         gaas = Database(Alloy.GaAs)
         gaas_a = gaas.parameters('a0')
         def gap(x):
-            db = Database(Alloy.InGaAs, 1.0-x)
-            lattice = db.parameters('a0')
-            a = db.deformation_potentials('a')
-            b = db.deformation_potentials('b')
-            c11 = db.deformation_potentials('c11')
-            c12 = db.deformation_potentials('c12')
+            lat = 5.65*(1-x)+6.08*x
+            a = -8.33*(1-x)-6.08*x
+            b = -1.9*(1-x)-1.55*x
+            c11 = 1.22*(1-x)+0.83*x
+            c12 = 0.57*(1-x)+0.45*x
+            me = 0.067*(1-0.426*x)
+            mhh = 0.34*(1+0.117*x)
+            epp = (gaas_a-lat)/lat
+            edhh = 2*a*(c11-c12)*epp/c11-b*(c11+2*c12)*epp/c11
+            gap = 1.5192-1.5837*x+0.475*x**2
 
-            gap_0 = db.parameters('eg_0')
-            gap_300 = db.parameters('eg_300')
-            gap = gap_0 + (gap_300-gap_0)/300.0
-
-            exx = eyy = (gaas_a-lattice) / lattice
-            ezz = -(2*c12/c11)*exx
-            corr = a*(exx+eyy+ezz)-(b/2)*(exx+eyy-2*ezz)
-
-            return gap + corr, db.effective_masses('m_e'), \
-                db.effective_masses('m_hh_z')
+            return gap + edhh, me, mhh
 
         self.gap, self.me, self.mhh = np.vectorize(gap)(self.x_z)
         self.gap_c = 0.7 * self.gap
@@ -195,10 +190,10 @@ class InGaAsQW(object):
 
         invB = inv(B)
         D = invB * C
-        #k = fftfreq(self.N, d=dz)
-        #exp_v2 = np.exp(- 0.5j * v * dt)
-        #exp_t = np.exp(- 0.5j * (2 * np.pi * k) ** 2 * dt / np.max(m))
-        #evolution_operator = lambda p: exp_v2*ifft(exp_t*fft(exp_v2*p))
+        k = fftfreq(self.N, d=dz)
+        exp_v2 = np.exp(- 0.5j * v * dt)
+        exp_t = np.exp(- 0.5j * (2 * np.pi * k) ** 2 * dt / np.max(m))
+        evolution_operator = lambda p: exp_v2*ifft(exp_t*fft(exp_v2*p))
 
         # kick start functions
         short_grid = np.linspace(-1, 1, self.N)
@@ -251,7 +246,7 @@ class InGaAsQW(object):
                     p_h_p /= A**2
 
                     eigenvalues_ev[s] = p_h_p.real * self.au2ev # eV
-                    #print(eigenvalues_ev[s])
+                    print(eigenvalues_ev[s])
 
                     precisions[s] = np.abs(1.0-eigenvalues_ev[s] \
                         / eigenvalues_ev_last)
