@@ -59,7 +59,7 @@ class InGaAsQW(object):
 
     def _build_grid(self):
         bulk_len = 300.0
-        bulk_lattice = 5.65
+        bulk_lattice = 5.65/2.0
         bulk_layers = np.ceil(bulk_len/bulk_lattice)
         bulk_len = bulk_layers * bulk_lattice
 
@@ -119,7 +119,7 @@ class InGaAsQW(object):
             me = 0.067*(1-0.426*x)
             mhh = 0.34*(1+0.117*x)
             epp = (gaas_a0-a0)/a0
-            dehh = 2*a*(c11-c12)*epp/c11-b*(c11+2*c12)*epp/c11
+            dehh = (2*a*(c11-c12)-b*(c11+2*c12))*epp/c11
             gap = 1.5192-1.5837*x+0.475*x**2
             return gap + dehh, me, mhh
 
@@ -143,7 +143,7 @@ class InGaAsQW(object):
         m = np.copy(self.mhh) if hh else np.copy(self.me)
         v = np.copy(self.gap_v_au) if hh else np.copy(self.gap_c_au)
         v = v - np.min(v)
-        info = imaginary(z=self.z_au, v=v, m_eff=m, nmax=nmax, dt=self.dt_au, precision=self.precision, method='cn')
+        info = imaginary(z=self.z_au, v=v, m_eff=m, nmax=nmax, dt=self.dt_au, precision=self.precision)
         self.eigenvalues_ev = info['eigenvalues'] * self.au2ev
         self.eigenstates = info['eigenstates']
 
@@ -155,11 +155,12 @@ if __name__ == u'__main__':
     #plt.show()
     #sys.exit(0)
     l = 33.0
+    R = 0.80
+    x0 = 0.11
     #for R in np.linspace(0.7, 0.9, 9):
-    R = 0.85
-    for l in [15, 27, 39, 51, 63]:
-    #for l in [33]:
-        device = InGaAsQW(well_length=l, R=R, x=0.16)
+    #for l in [15, 27, 39, 51, 63]:
+    for l in [33]:
+        device = InGaAsQW(well_length=l, R=R, x=x0)
         device.evolve_pe(nmax=1)
         electron = device.eigenvalues_ev[0]
         device.evolve_pe(nmax=1, hh=True)

@@ -56,7 +56,7 @@ def eigenvalue_pdm(z, v, psi, m):
 
     return p_h_p.real
 
-def imaginary(z, v, m_eff, nmax=1, dt=1e-18, precision=1e-5, method='pe'):
+def imaginary(z, v, m_eff, nmax=1, dt=0.04, precision=1e-5, method='pe'):
     """
     This function generates the first `nmax` eigenvalues and
     eigenvectors of the potential specified by `z` and `v`
@@ -69,16 +69,16 @@ def imaginary(z, v, m_eff, nmax=1, dt=1e-18, precision=1e-5, method='pe'):
     dt *= -1.0j
     m = m_eff
 
-    if not (type(m) is list or type(m) is np.ndarray):
-        m = np.ones(N) * m
+    #if not (type(m) is list or type(m) is np.ndarray):
+    #    m = np.ones(N) * m
 
     if method == 'pe':
         # split step
         exp_v2 = np.exp(- 0.5j * v * dt)
         exp_t = np.exp(- 0.5j * (2 * np.pi * k) ** 2 * dt / m)
         evolution_operator = lambda p: exp_v2*ifft(exp_t*fft(exp_v2*p))
-        #eigenvalue = eigenvalue_simple
-        eigenvalue = eigenvalue_pdm
+        eigenvalue = eigenvalue_simple
+        #eigenvalue = eigenvalue_pdm
 
     elif method == 'cn':
         # crank nicolson
