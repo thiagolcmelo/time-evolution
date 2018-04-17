@@ -16,7 +16,18 @@ from .kickstart import orthonormal
 
 def eigenvalue_simple(z, v, psi, m):
     """
-    Calculates the eigenvalues of a eigenstate
+    Calculates the eigenvalues of an eigenstate
+    
+    Params
+    ------
+    z : list
+        the grid points in atomic units
+    v : list
+        the potential in atomic units
+    psi : list
+        the wave function
+    m : float
+        the effective electron/hole mass
     """
     dz = z[1]-z[0]
 
@@ -37,6 +48,17 @@ def eigenvalue_pdm(z, v, psi, m):
     """
     Calculates the eigenvalues of a eigenstate
     using position dependent mass
+    
+    Params
+    ------
+    z : list
+        the grid points in atomic units
+    v : list
+        the potential in atomic units
+    psi : list
+        the wave function
+    m : list
+        the effective electron/hole mass in each point
     """
     N = len(z)
     dz = z[1]-z[0]
@@ -61,6 +83,27 @@ def imaginary(z, v, m_eff, nmax=1, dt=0.04, precision=1e-5, method='pe'):
     This function generates the first `nmax` eigenvalues and
     eigenvectors of the potential specified by `z` and `v`
     under the effective mass `m_eff`
+    
+    Params
+    ------
+    z : list
+        the grid points in atomic units
+    v : list
+        the potential in atomic units
+    m_eff : list or float
+        the effective electron/hole mass, it might
+        be a float for the whole system or a list
+        for each point
+    nmax : int
+        number of states to calculate
+    dt : float
+        the time step in atomic units
+    precision : float
+        the precision in percentage
+    method : string
+        it is the method to use:
+        - 'pe' stands for pseudo-spectral
+        - 'cn' stands for crank-nicolson
     """
 
     N = len(z)
@@ -69,19 +112,22 @@ def imaginary(z, v, m_eff, nmax=1, dt=0.04, precision=1e-5, method='pe'):
     dt *= -1.0j
     m = m_eff
 
-    #if not (type(m) is list or type(m) is np.ndarray):
-    #    m = np.ones(N) * m
-
     if method == 'pe':
         # split step
         exp_v2 = np.exp(- 0.5j * v * dt)
         exp_t = np.exp(- 0.5j * (2 * np.pi * k) ** 2 * dt / m)
         evolution_operator = lambda p: exp_v2*ifft(exp_t*fft(exp_v2*p))
-        eigenvalue = eigenvalue_simple
-        #eigenvalue = eigenvalue_pdm
+        
+        if not (type(m) is list or type(m) is np.ndarray):
+            eigenvalue = eigenvalue_simple
+        else:
+            eigenvalue = eigenvalue_pdm
 
     elif method == 'cn':
         # crank nicolson
+        if not (type(m) is list or type(m) is np.ndarray):
+            m = np.ones(N) * m
+            
         up_diag = np.zeros(N-2, dtype=np.complex_)
         down_diag = np.zeros(N-2, dtype=np.complex_)
         main_diag_b = main_diag_c = np.zeros(N, dtype=np.complex_)
